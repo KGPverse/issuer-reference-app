@@ -1,41 +1,70 @@
 const express = require('express');
 const router = express.Router();
-const { CredentialsServiceClient , Credentials } = require("@trinsic/service-clients");
+const { CredentialsServiceClient, Credentials } = require("@trinsic/service-clients");
+const Student = require('../models/student');
 const cache = require('../model');
+
 require('dotenv').config();
 
 const client = new CredentialsServiceClient(
-    new Credentials(process.env.ACCESSTOK),
-    { noRetryPolicy: true });
+  new Credentials(process.env.ACCESSTOK),
+  { noRetryPolicy: true });
 
 /* GET home page */
-router.get('/', function(req, res, next) {
+router.get('/', function (req, res, next) {
   res.render('index');
 });
 
 /* Webhook endpoint */
 router.post('/webhook', async function (req, res) {
   try {
-    console.log("got webhook" + req + "   type: " + req.body.message_type);
-    if (req.body.message_type === 'new_connection') {
+    console.log("got webhook");
+    console.log(req.body);
+    if (req.body.message_type === 'new_inbox_message') {
       console.log("new connection notification");
-      const attribs = cache.get(req.body.object_id)
-      if (attribs) {
-        let param_obj = JSON.parse(attribs);
-        let params = {
-          definitionId: process.env.CRED_DEF_ID,
-          connectionId: req.body.object_id,
-          automaticIssuance: true,
-          credentialValues: {
-            "Full Name": param_obj["name"],
-            "Title": param_obj["title"],
-            "Company Name": param_obj["org"],
-            "Phone Number": param_obj["phone"],
-            "Email": param_obj["email"]
-          }
-        }
-        await client.createCredential(params);
+      console.log(req.body.data.ConnectionId);
+      let msg = await client.getMessage(req.body.object_id);
+      console.log(msg);
+      let arr = msg.text.split(" ");
+      if (!(arr.length == 4 && arr[0] == "GEN")){
+        return;
       }
+      let rollno = arr[1];
+      let college = arr[2];
+      let otp = arr[3];
+
+      let students = await Student.find({
+        rollno: rollno,
+        college: college
+      });
+
+      if (students.length != 1){
+        return;
+      }
+
+      let stu = students[0];
+
+      if (stu.otp != otp){
+        return;
+      }
+
+      let params = {
+        definitionId: process.env.CRED_DEF_ID,
+        connectionId: req.body.data.ConnectionId,
+        automaticIssuance: true,
+        credentialValues: {
+          "Full Name": stu.name,
+          "Roll Number": stu.rollno,
+          "College": stu.college,
+          "Aadhar": stu.aadhar,
+          "Phone": stu.phone,
+          "Email": stu.email,
+          "Account ID": `${stu.rollno}-${stu.college}-${stu.aadhar}`
+        }
+      }
+
+      console.log(params);
+      await client.createCredential(params);
     }
   }
   catch (e) {

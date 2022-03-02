@@ -1,19 +1,36 @@
-async function submit() {
-    const bizCard = {
-        name: document.getElementById("name").value,
-        title: document.getElementById("title").value,
-        org: document.getElementById("organization").value,
-        phone: document.getElementById("phone").value,
-        email: document.getElementById("email").value
+function makeOTP(length) {
+    var result           = '';
+    var characters       = '0123456789';
+    var charactersLength = characters.length;
+    for ( var i = 0; i < length; i++ ) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
-    console.log(bizCard)
+    
+    return result;
+}
+
+async function submit() {
+    const student = {
+        name: document.getElementById("name").value,
+        rollno: document.getElementById("rollno").value,
+        college: document.getElementById("college").value,
+        aadhar: document.getElementById("aadhar").value,
+        phone: document.getElementById("phone").value,
+        email: document.getElementById("email").value,
+        otp: makeOTP(6)
+    };
+
+    console.log(student);
+
     openModal();
     hideQRCode();
     showSpinner();
-    axios.post('/api/issue', bizCard).then((response) => {
+
+    axios.post('/api/store', student).then((response) => {
         console.log(response);
         let inviteURL = response.data.invitation;
         setQRCodeImage(inviteURL);
+        setOTPMsg(student);
         hideSpinner();
         showQRCode();
     });
@@ -53,10 +70,18 @@ function setQRCodeImage(url) {
     qr.appendChild(s);
 }
 
+function setOTPMsg(student) {
+    let content = `<pre><code>GEN ${student.rollno} ${student.college} ${student.otp}</code></pre>`;
+    otpMsg.innerHTML = content;
+}
+
 function hideSpinner() {
-    spinner.style.display = "none";
+    spinner1.style.display = "none";
+    spinner2.style.display = "none";
 }
 
 function showSpinner() {
-    spinner.style.display = "block";
+    spinner1.style.display = "block";
+    spinner2.style.display = "block";
+
 }

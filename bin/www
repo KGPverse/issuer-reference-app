@@ -7,6 +7,9 @@
 const app = require('../app');
 const debug = require('debug')('tmp:server');
 const http = require('http');
+const db = require('../models/db_conn');
+
+db.connect(process.env.MONGO_URI).catch(err => console.log(err));
 
 /**
  * Get port from environment and store in Express.

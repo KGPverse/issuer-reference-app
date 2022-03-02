@@ -3,6 +3,8 @@ const router = express.Router();
 const cors = require('cors');
 const { CredentialsServiceClient, Credentials } = require("@trinsic/service-clients");
 const cache = require('../model');
+const Student = require('../models/student');
+
 require('dotenv').config();
 
 const client = new CredentialsServiceClient(
@@ -17,11 +19,20 @@ const getInvite = async () => {
   }
 }
 
-router.post('/issue', cors(), async function (req, res) {
-  const invite = await getInvite();
-  const attribs = JSON.stringify(req.body);
+router.post('/store', cors(), async function (req, res) {
+  const student = new Student({
+    name: req.body.name,
+    rollno: req.body.rollno,
+    college: req.body.college,
+    aadhar: req.body.aadhar,
+    phone: req.body.phone,
+    email: req.body.email,
+    otp: req.body.otp
+  });
 
-  cache.add(invite.connectionId, attribs);
+  await student.save();
+  
+  const invite = await getInvite();
   res.status(200).send({ invitation: invite.invitationUrl });
 });
 
