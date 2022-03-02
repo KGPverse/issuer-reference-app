@@ -3,6 +3,8 @@ const router = express.Router();
 const { CredentialsServiceClient, Credentials } = require("@trinsic/service-clients");
 const Student = require('../models/student');
 const cache = require('../model');
+const mapper = require('../models/mapper');
+const axios = require('axios');
 
 require('dotenv').config();
 
@@ -65,6 +67,25 @@ router.post('/webhook', async function (req, res) {
 
       console.log(params);
       await client.createCredential(params);
+    }else if (req.body.message_type === 'verification') {
+      let verification = await client.getVerification(req.body.object_id);
+      console.log(verification);
+
+      let vUrl = verification.verificationRequestUrl;
+      let status = verification.state;
+
+      if (status !== "Accepted"){
+        console.log("Defeat", status);
+        return;
+      }
+
+      let callback = mapper.mapData[vUrl];
+      let resp = await axios.post(callback, {
+        status: "Accepted",
+        attributes: verification.proof
+      });
+      console.log(resp.data);
+      
     }
   }
   catch (e) {

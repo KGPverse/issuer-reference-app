@@ -4,6 +4,7 @@ const cors = require('cors');
 const { CredentialsServiceClient, Credentials } = require("@trinsic/service-clients");
 const cache = require('../model');
 const Student = require('../models/student');
+const mapper = require('../models/mapper');
 
 require('dotenv').config();
 
@@ -34,6 +35,22 @@ router.post('/store', cors(), async function (req, res) {
   
   const invite = await getInvite();
   res.status(200).send({ invitation: invite.invitationUrl });
+});
+
+
+router.post('/loginreq', cors(), async (req, res) => {
+  let callback = req.body.callback;
+  let verification = await client.createVerificationFromPolicy(process.env.POLICY_ID);
+
+  console.log(verification);
+
+  mapper.mapData[verification.verificationRequestUrl] = callback;
+
+  res.status(200).send({
+    verificationRequestData: verification.verificationRequestData,
+    verificationRequestUrl: verification.verificationRequestUrl,
+    verificationId: verification.verificationId
+  });
 });
 
 module.exports = router;
